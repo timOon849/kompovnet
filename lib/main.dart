@@ -37,7 +37,7 @@ void main() async {
         initialRoute = '/clubs';
       }
     } catch (e) {
-      print("Пользователь не найден в локальной базе");
+      debugPrint("Пользователь не найден в локальной базе");
     }
   }
 

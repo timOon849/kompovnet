@@ -3,6 +3,8 @@ import 'package:kompovnet/data/mock_data.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
   @override
   Widget build(BuildContext context) {
     final user = currentUser;
@@ -24,8 +26,8 @@ class HomePage extends StatelessWidget {
           children: [
             DrawerHeader(
               decoration: const BoxDecoration(color: Colors.deepOrangeAccent),
-              child: Image.asset('assets/images/logo.png', height: 150, width: 150),
               padding: EdgeInsets.only(bottom: 30),
+              child: Image.asset('assets/images/logo.png', height: 150, width: 150),
             ),
             ListTile(
                 leading: const Icon(Icons.person),
@@ -134,17 +136,19 @@ class HomePage extends StatelessWidget {
                     Text(currentClub.address),
                     Text('Режим работы: ${currentClub.workTime}'),
                     const SizedBox(height: 10),
-                    Row(
+                    Column(
                       children: [
-                        Expanded(
+                        SizedBox(
+                          width: double.infinity,
                           child: OutlinedButton.icon(
                             onPressed: () => Navigator.pushNamed(context, '/clubDetails'),
                             icon: const Icon(Icons.info_outline),
                             label: const Text('Подробнее'),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
                           child: OutlinedButton.icon(
                             onPressed: () => Navigator.pushReplacementNamed(context, '/clubs'),
                             icon: const Icon(Icons.swap_horiz),
@@ -198,9 +202,9 @@ class HomePage extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: color.withOpacity(0.5)),
+          border: Border.all(color: color.withValues(alpha: 0.5)),
         ),
         child: Row(
           children: [
