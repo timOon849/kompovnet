@@ -17,9 +17,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   void initState() {
     super.initState();
-    _nameController.text = currentUser.name;
-    _lastnameController.text = currentUser.lastName;
-    _phoneController.text = currentUser.phone;
+    _nameController.text = currentClient.FirstName;
+    _lastnameController.text = currentClient.LastName;
+    _phoneController.text = currentClient.PhoneNumber ?? '';
     _nameController.addListener(_onFieldChanged);
     _lastnameController.addListener(_onFieldChanged);
     _phoneController.addListener(_onFieldChanged);
@@ -41,9 +41,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   bool get _hasChanges {
-    return _nameController.text.trim() != currentUser.name ||
-        _lastnameController.text.trim() != currentUser.lastName ||
-        _phoneController.text.trim() != currentUser.phone;
+    return _nameController.text.trim() != currentClient.FirstName ||
+        _lastnameController.text.trim() != currentClient.LastName ||
+        _phoneController.text.trim() != (currentClient.PhoneNumber ?? '');
   }
 
   String? _validateName(String? value, String label) {
@@ -81,36 +81,30 @@ class _EditProfilePageState extends State<EditProfilePage> {
       return;
     }
 
-    final name = _nameController.text.trim();
+    final firstName = _nameController.text.trim();
     final lastName = _lastnameController.text.trim();
     final phone = _phoneController.text.trim();
 
     final normalizedPhone = _normalizePhone(phone);
     final phoneExists = normalizedPhone.isNotEmpty &&
-        registeredUsers.any(
-          (user) =>
-              user.Id != currentUser.Id &&
-              _normalizePhone(user.phone) == normalizedPhone,
+        registeredClients.any(
+          (member) =>
+              member.Id != currentClient.Id &&
+              _normalizePhone(member.PhoneNumber ?? '') == normalizedPhone,
         );
     if (phoneExists) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Этот номер уже привязан к другому аккаунту')),
+        const SnackBar(
+          content: Text('Этот номер уже привязан к другому аккаунту'),
+        ),
       );
       return;
     }
 
-    final updatedUser = currentUser.copyWith(
-      name: name,
-      lastName: lastName,
-      phone: phone,
-    );
-
-    final userIndex = registeredUsers.indexWhere((user) => user.Id == currentUser.Id);
-    if (userIndex != -1) {
-      registeredUsers[userIndex] = updatedUser;
-    }
-
-    currentUser = updatedUser;
+    // TODO: заменить на PUT /api/clients/{id} и подставить Client из ответа API
+    currentClient.FirstName = firstName;
+    currentClient.LastName = lastName;
+    currentClient.PhoneNumber = phone.isEmpty ? null : phone;
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

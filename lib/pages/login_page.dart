@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kompovnet/data/mock_data.dart';
-import 'package:kompovnet/data/user.dart';
+import 'package:kompovnet/data/client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
@@ -80,33 +80,38 @@ class _LoginPageState extends State<LoginPage> {
                   return;
                 }
 
-                final loginExists = registeredUsers.any(
-                  (user) => user.login.toLowerCase() == login.toLowerCase(),
+                final loginExists = registeredClients.any(
+                  (member) =>
+                      member.login?.toLowerCase() == login.toLowerCase(),
                 );
                 if (loginExists) {
                   _showMessage("Такой логин уже занят");
                   return;
                 }
 
-                final phoneExists = registeredUsers.any((user) => user.phone == phone);
+                final phoneExists = registeredClients.any(
+                  (member) => member.phoneNumber == phone,
+                );
                 if (phoneExists) {
                   _showMessage("Такой телефон уже указан у другого пользователя");
                   return;
                 }
 
-                final newId = registeredUsers.isEmpty
+                final newId = registeredClients.isEmpty
                     ? 1
-                    : registeredUsers.map((user) => user.Id).reduce((a, b) => a > b ? a : b) + 1;
+                    : registeredClients
+                            .map((member) => member.Id)
+                            .reduce((a, b) => a > b ? a : b) +
+                        1;
 
-                // Создаем нового пользователя и добавляем в список
                 setState(() {
-                  registeredUsers.add(User(
-                    login: login,
-                    password: password,
-                    name: name,
+                  registeredClients.add(Client(
                     Id: newId,
-                    lastName: lastName,
-                    phone: phone,
+                    FirstName: name,
+                    LastName: lastName,
+                    PhoneNumber: phone,
+                    Login: login,
+                    Password: password,
                   ));
                 });
                 Navigator.pop(context); // Закрываем окно после сохранения
@@ -142,21 +147,21 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     try {
-      User foundUser = registeredUsers.firstWhere(
-        (user) =>
-            (user.login.toLowerCase() == inputLogin.toLowerCase() ||
-                user.phone == inputLogin) &&
-            user.password == inputPass,
+      final foundMember = registeredClients.firstWhere(
+        (member) =>
+            (member.login?.toLowerCase() == inputLogin.toLowerCase() ||
+                member.phoneNumber == inputLogin) &&
+            member.password == inputPass,
       );
 
-      currentUser = foundUser;
+      currentClient = foundMember;
 
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('saved_user_id', foundUser.Id);
+      await prefs.setInt('saved_user_id', foundMember.Id);
       await prefs.setBool('is_logged_in', true);
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/clubs', arguments: foundUser);
+      Navigator.pushReplacementNamed(context, '/clubs', arguments: foundMember);
     } catch (e) {
       _showMessage("Неверный логин или пароль!");
     }

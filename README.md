@@ -1,6 +1,6 @@
 # kompovnet
 
-A new Flutter project.
+A new project for computer club.
 
 ## Getting Started
 

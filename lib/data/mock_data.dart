@@ -1,34 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:kompovnet/data/client.dart';
 import 'package:kompovnet/data/computer_club.dart';
 import 'package:kompovnet/data/computer.dart';
 import 'package:kompovnet/data/game_session.dart';
 import 'package:kompovnet/data/game_zone.dart';
 import 'package:kompovnet/data/promo_offer.dart';
 import 'package:kompovnet/data/transaction.dart';
-import 'package:kompovnet/data/user.dart';
 
-final List<User> registeredUsers = [
-  User(
-    Id: 1,
+final List<Client> registeredClients = [
+  Client(
+    id: 1,
+    firstName: 'Алексей',
+    lastName: 'Ivanov',
+    phoneNumber: '+7 (900) 123-45-67',
     login: '123',
     password: '123',
-    name: 'Алексей',
-    lastName: 'Ivanov',
-    phone: '+7 (900) 123-45-67',
     balance: 1500.0,
   ),
-  User(
-    Id: 2,
+  Client(
+    id: 2,
+    firstName: 'Дмитрий',
+    lastName: 'Админов',
+    phoneNumber: '+7 (900) 765-43-21',
     login: 'admin',
     password: 'qwe',
-    name: 'Дмитрий',
-    lastName: 'Админов',
-    phone: '+7 (900) 765-43-21',
     balance: 5000.0,
+  ),
+  Client(
+    id: 3,
+    firstName: 'Максим',
+    lastName: 'Козлов',
+    phoneNumber: '+7 900 333-44-55',
+    balance: 2400.0,
   ),
 ];
 
-User currentUser = registeredUsers[0];
+Client currentClient = registeredClients[0];
 
 final List<ComputerClub> mockClubs = [
   ComputerClub(
@@ -238,7 +245,7 @@ final List<PromoOffer> mockTariffs = [
 List<GameSession> activeSessions = [
   GameSession(
     id: 1,
-    userId: 1,
+    clientId: 1,
     clubId: 1,
     computerId: 2,
     startTime: DateTime(2026, 01, 15, 0, 30, 0),
@@ -250,7 +257,7 @@ List<GameSession> activeSessions = [
 List<Transaction> userTransactions = [
   Transaction(
     id: 1,
-    userId: currentUser.Id,
+    clientId: currentClient.id,
     amount: 100,
     date: DateTime(2025, 12, 20),
     type: TransactionType.deposit,
@@ -258,7 +265,7 @@ List<Transaction> userTransactions = [
   ),
   Transaction(
     id: 2,
-    userId: currentUser.Id,
+    clientId: currentClient.id,
     amount: 300,
     date: DateTime(2026, 02, 20),
     type: TransactionType.withdraw,

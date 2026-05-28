@@ -41,7 +41,7 @@ class _BookingPageState extends State<BookingPage> {
     final int currentZoneId = currentZone.id;
 
     final List<Computer> computersToShow = mockComputers
-        .where((pc) => pc.clubId == currentClub.id && pc.zoneId == currentZoneId)
+        .where((pc) => pc.ClubId == currentClub.id && pc.ZoneId == currentZoneId)
         .toList();
 
     final DateTime startTime = DateTime(
@@ -301,28 +301,28 @@ class _BookingPageState extends State<BookingPage> {
               itemCount: computersToShow.length,
               itemBuilder: (context, index) {
                 final pc = computersToShow[index];
-                bool isSelected = selectedComputerId == pc.id;
+                bool isSelected = selectedComputerId == pc.Id;
                 bool isBusy =
-                    pc.status == ComputerStatus.busy ||
-                    _hasBookingConflict(pc.id, startTime, endTime);
+                    pc.Status == ComputerStatus.busy ||
+                    _hasBookingConflict(pc.Id, startTime, endTime);
 
                 return InkWell(
                   onTap: isBusy
                       ? null
-                      : () => setState(() => selectedComputerId = pc.id),
+                      : () => setState(() => selectedComputerId = pc.Id),
                   child: Container(
                     decoration: BoxDecoration(
                       color: isBusy
                           ? Colors.grey[400]
                           : (isSelected
                                 ? Colors.green
-                                : Colors.deepOrangeAccent.withOpacity(0.2)),
+                                : Colors.deepOrangeAccent.withValues(alpha: 0.2)),
                       borderRadius: BorderRadius.circular(8),
                       border: isSelected ? Border.all(color: Colors.green, width: 2) : null,
                     ),
                     child: Center(
                       child: Text(
-                        "${pc.number}",
+                        "${pc.Number}",
                         style: TextStyle(color: isBusy ? Colors.white : Colors.black),
                       ),
                     ),
@@ -342,7 +342,7 @@ class _BookingPageState extends State<BookingPage> {
                   ),
                   onPressed: () {
                     final selectedComputer = computersToShow.firstWhere(
-                      (pc) => pc.id == selectedComputerId,
+                      (pc) => pc.Id == selectedComputerId,
                     );
                     _showConfirmBooking(
                       currentZone,
@@ -398,11 +398,11 @@ class _BookingPageState extends State<BookingPage> {
 
   bool _hasBookingConflict(int computerId, DateTime start, DateTime end) {
     return activeSessions.any((session) {
-      if (session.computerId != computerId) return false;
-      if (session.status != BookingStatus.booked) return false;
+      if (session.ComputerId != computerId) return false;
+      if (session.Status != BookingStatus.booked) return false;
 
-      final startsBeforeExistingEnds = start.isBefore(session.endTime);
-      final endsAfterExistingStarts = end.isAfter(session.startTime);
+      final startsBeforeExistingEnds = start.isBefore(session.PlannedEndAt);
+      final endsAfterExistingStarts = end.isAfter(session.StartedAt);
       return startsBeforeExistingEnds && endsAfterExistingStarts;
     });
   }
@@ -433,7 +433,7 @@ class _BookingPageState extends State<BookingPage> {
             children: [
               Text("Клуб: ${currentClub.name}"),
               Text("Зона: ${zone.name}"),
-              Text("ПК: №${computer.number}"),
+              Text("ПК: №${computer.Number}"),
               const Divider(),
               Text("Дата: ${_formatDate(start)}"),
               Text("Время: ${_formatTimeOfDate(start)} - ${_formatTimeOfDate(end)}"),
@@ -473,10 +473,10 @@ class _BookingPageState extends State<BookingPage> {
   ) {
     setState(() {
       activeSessions.add(GameSession(
-        id: DateTime.now().millisecondsSinceEpoch,
-        userId: currentUser.Id,
-        clubId: currentClub.id,
-        computerId: computer.id,
+        Id: DateTime.now().millisecondsSinceEpoch,
+        ClientId: currentClient.Id,
+        ClubId: currentClub.id,
+        ComputerId: computer.Id,
         startTime: start,
         endTime: end,
         totalCost: cost,
@@ -489,7 +489,7 @@ class _BookingPageState extends State<BookingPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          "Успешно забронировано: ПК №${computer.number}, ${zone.name}",
+          "Успешно забронировано: ПК №${computer.Number}, ${zone.name}",
         ),
       ),
     );

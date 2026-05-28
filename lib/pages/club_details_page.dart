@@ -9,8 +9,8 @@ class ClubDetailsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final zones = mockZones.where((zone) => zone.clubId == currentClub.id).toList();
-    final computers = mockComputers.where((pc) => pc.clubId == currentClub.id).toList();
-    final freeComputers = computers.where((pc) => pc.status == ComputerStatus.free).length;
+    final computers = mockComputers.where((pc) => pc.ClubId == currentClub.id).toList();
+    final freeComputers = computers.where((pc) => pc.Status == ComputerStatus.free).length;
 
     return Scaffold(
       appBar: AppBar(
@@ -94,8 +94,8 @@ class _ZoneCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final zoneComputers = mockComputers.where((pc) => pc.zoneId == zone.id).toList();
-    final freeComputers = zoneComputers.where((pc) => pc.status == ComputerStatus.free).length;
+    final zoneComputers = mockComputers.where((pc) => pc.ZoneId == zone.id).toList();
+    final freeComputers = zoneComputers.where((pc) => pc.Status == ComputerStatus.free).length;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -168,9 +168,9 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.4)),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Column(
         children: [

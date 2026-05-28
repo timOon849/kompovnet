@@ -29,7 +29,8 @@ void main() async {
   if (savedId != null) {
     try {
       // Обновляем глобальную переменную из mock_data
-      currentUser = registeredUsers.firstWhere((u) => u.Id == savedId);
+      currentClient =
+          registeredClients.firstWhere((client) => client.id == savedId);
       if (savedClubId != null) {
         currentClub = mockClubs.firstWhere((club) => club.id == savedClubId);
         initialRoute = '/home';

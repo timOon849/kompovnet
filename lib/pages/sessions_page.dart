@@ -11,14 +11,14 @@ class SessionsPage extends StatefulWidget {
 
 class _SessionsPageState extends State<SessionsPage> {
   void showSessionDecs(int id) {
-    final currentSession = activeSessions.firstWhere((e) => e.id == id);
+    final currentSession = activeSessions.firstWhere((e) => e.Id == id);
 
     final currentComputer = mockComputers.firstWhere(
-      (s) => s.id == currentSession.computerId,
+      (s) => s.Id == currentSession.ComputerId,
     );
 
     final currentZone = mockZones.firstWhere(
-      (z) => z.id == currentComputer.zoneId,
+      (z) => z.id == currentComputer.ZoneId,
     );
 
     final currentSessionStatus = _getSessionStatus(currentSession);
@@ -37,18 +37,18 @@ class _SessionsPageState extends State<SessionsPage> {
                 'Зона: ${currentZone.name}',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              Text('Компьютер: №${currentComputer.number}'),
+              Text('Компьютер: №${currentComputer.Number}'),
               const Divider(), // Визуальная черта
-              Text('Дата: ${_formatDate(currentSession.startTime)}'),
+              Text('Дата: ${_formatDate(currentSession.StartedAt)}'),
               Text(
-                'Начало: ${_formatTime(currentSession.startTime)}',
+                'Начало: ${_formatTime(currentSession.StartedAt)}',
               ),
               Text(
-                'Конец: ${_formatTime(currentSession.endTime)}',
+                'Конец: ${_formatTime(currentSession.PlannedEndAt)}',
               ),
               const SizedBox(height: 10),
               Text('Тариф: ${currentSession.tariffTitle}'),
-              Text('Стоимость: ${currentSession.totalCost.toInt()} ₽'),
+              Text('Стоимость: ${currentSession.TotalPrice.toInt()} ₽'),
               Text('Статус: ${_statusText(currentSessionStatus)}'),
             ],
           ),
@@ -73,7 +73,7 @@ class _SessionsPageState extends State<SessionsPage> {
 
   void _cancelSession(GameSession session) {
     setState(() {
-      session.status = BookingStatus.cancelled;
+      session.Status = BookingStatus.cancelled;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -85,7 +85,8 @@ class _SessionsPageState extends State<SessionsPage> {
   Widget build(BuildContext context) {
     // Получаем только посещения текущего пользователя в выбранном клубе.
     final userHistory = activeSessions
-        .where((s) => s.userId == currentUser.Id && s.clubId == currentClub.id)
+        .where((s) =>
+            s.ClientId == currentClient.Id && s.ClubId == currentClub.id)
         .toList();
 
     return Scaffold(
@@ -108,8 +109,8 @@ class _SessionsPageState extends State<SessionsPage> {
               itemBuilder: (context, index) {
                 // Свежие посещения будут сверху
                 final session = userHistory.reversed.toList()[index];
-                final computer = mockComputers.firstWhere((pc) => pc.id == session.computerId);
-                final zone = mockZones.firstWhere((z) => z.id == computer.zoneId);
+                final computer = mockComputers.firstWhere((pc) => pc.Id == session.ComputerId);
+                final zone = mockZones.firstWhere((z) => z.id == computer.ZoneId);
                 final status = _getSessionStatus(session);
 
                 return Container(
@@ -122,10 +123,10 @@ class _SessionsPageState extends State<SessionsPage> {
                   ),
                   child: ListTile(
                     title: Text(
-                      "${_formatDate(session.startTime)} ${_formatTime(session.startTime)}",
+                      "${_formatDate(session.StartedAt)} ${_formatTime(session.StartedAt)}",
                     ),
                     subtitle: Text(
-                      "${zone.name}, ПК №${computer.number} • ${session.tariffTitle} • ${_statusText(status)}",
+                      "${zone.name}, ПК №${computer.Number} • ${session.tariffTitle} • ${_statusText(status)}",
                     ),
                     trailing: session.canCancel
                         ? TextButton(
@@ -134,7 +135,7 @@ class _SessionsPageState extends State<SessionsPage> {
                           )
                         : const Icon(Icons.chevron_right),
                     onTap: () {
-                      showSessionDecs(session.id);
+                      showSessionDecs(session.Id);
                     },
                   ),
                 );
@@ -144,10 +145,10 @@ class _SessionsPageState extends State<SessionsPage> {
   }
 
   BookingStatus _getSessionStatus(GameSession session) {
-    if (session.status == BookingStatus.cancelled) {
+    if (session.Status == BookingStatus.cancelled) {
       return BookingStatus.cancelled;
     }
-    if (DateTime.now().isAfter(session.endTime)) {
+    if (DateTime.now().isAfter(session.PlannedEndAt)) {
       return BookingStatus.completed;
     }
     return BookingStatus.booked;

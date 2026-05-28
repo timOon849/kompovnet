@@ -7,7 +7,7 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = currentUser;
+    final client = currentClient;
 
     return Scaffold(
       // 1. ВЕРХНЯЯ ПАНЕЛЬ (теперь она будет отображаться корректно)
@@ -34,7 +34,7 @@ class HomePage extends StatelessWidget {
                 title: const Text("Профиль"),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.pushNamed(context, '/profile', arguments: user);
+                  Navigator.pushNamed(context, '/profile', arguments: client);
                 }),
             ListTile(
                 leading: const Icon(Icons.local_attraction_rounded),
@@ -97,7 +97,7 @@ class HomePage extends StatelessWidget {
                   Text("Ваш баланс", style: TextStyle(color: Colors.white70, fontSize: 16)),
                   SizedBox(height: 10),
                   Text(
-                    '${user.balance.toInt()} ₽',
+                    '${client.balance.toInt()} ₽',
                     style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 10),

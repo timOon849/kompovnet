@@ -46,15 +46,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 }
 
                 setState(() {
-                  currentUser.balance += amount;
+                  // TODO: заменить на API и обновить currentClient из ответа
+                  currentClient.Balance += amount;
                   userTransactions.add(
                     Transaction(
-                      id: DateTime.now().millisecondsSinceEpoch,
-                      userId: currentUser.Id,
-                      amount: amount,
+                      Id: DateTime.now().millisecondsSinceEpoch,
+                      ClientId: currentClient.Id,
+                      Amount: amount,
                       date: DateTime.now(),
-                      type: TransactionType.deposit,
-                      description: 'Пополнение баланса',
+                      Type: TransactionType.deposit,
+                      Description: 'Пополнение баланса',
                     ),
                   );
                 });
@@ -87,21 +88,24 @@ class _ProfilePageState extends State<ProfilePage> {
     final userSessions = activeSessions
         .where(
           (session) =>
-              session.userId == currentUser.Id &&
-              session.status != BookingStatus.cancelled,
+              session.ClientId == currentClient.Id &&
+              session.Status != BookingStatus.cancelled,
         )
         .toList();
     final activeBookings = userSessions
         .where(
           (session) =>
-              session.status == BookingStatus.booked &&
-              DateTime.now().isBefore(session.endTime),
+              session.Status == BookingStatus.booked &&
+              DateTime.now().isBefore(session.PlannedEndAt),
         )
         .length;
     final completedVisits = userSessions
-        .where((session) => DateTime.now().isAfter(session.endTime))
+        .where((session) => DateTime.now().isAfter(session.PlannedEndAt))
         .length;
-    final userInitials = _getInitials(currentUser.name, currentUser.lastName);
+    final userInitials = _getInitials(
+      currentClient.FirstName,
+      currentClient.LastName,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -147,20 +151,22 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 15),
                   Text(
-                    "${currentUser.name} ${currentUser.lastName}",
+                    '${currentClient.FirstName} ${currentClient.LastName}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Text(
-                    "Логин: ${currentUser.login}",
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                  if (currentUser.phone.isNotEmpty)
+                  if (currentClient.login != null &&
+                      currentClient.login!.isNotEmpty)
                     Text(
-                      "Телефон: ${currentUser.phone}",
+                      'Логин: ${currentClient.login}',
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                  if ((currentClient.phoneNumber ?? '').isNotEmpty)
+                    Text(
+                      "Телефон: ${currentClient.phoneNumber}",
                       style: const TextStyle(color: Colors.white70),
                     ),
                   const SizedBox(height: 6),
@@ -187,7 +193,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   children: [
                     _buildStatItem("$completedVisits", "Визитов"),
                     _buildStatItem("$activeBookings", "Броней"),
-                    _buildStatItem("${currentUser.balance.toInt()} ₽", "Баланс"),
+                    _buildStatItem(
+                      "${currentClient.Balance.toInt()} ₽",
+                      "Баланс",
+                    ),
                   ],
                 ),
               ),

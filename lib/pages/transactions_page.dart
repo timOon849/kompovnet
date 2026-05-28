@@ -7,7 +7,7 @@ class TransactionsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tr = userTransactions
-        .where((u) => u.userId == currentUser.Id)
+        .where((t) => t.ClientId == currentClient.Id)
         .toList()
         .reversed
         .toList();
@@ -29,7 +29,7 @@ class TransactionsPage extends StatelessWidget {
               itemCount: tr.length,
               itemBuilder: (context, index) {
                 final t = tr[index];
-                final bool isWithdraw = t.type == TransactionType.withdraw;
+                final bool isWithdraw = t.Type == TransactionType.withdraw;
 
                 return ListTile(
                   leading: CircleAvatar(
@@ -39,12 +39,12 @@ class TransactionsPage extends StatelessWidget {
                       color: isWithdraw ? Colors.red : Colors.green,
                     ),
                   ),
-                  title: Text(t.description),
+                  title: Text(t.Description),
                   subtitle: Text(
-                    "${t.date.day}.${t.date.month}.${t.date.year} ${t.date.hour}:${t.date.minute.toString().padLeft(2, '0')}",
+                    "${t.CreatedAt.day}.${t.CreatedAt.month}.${t.CreatedAt.year} ${t.CreatedAt.hour}:${t.CreatedAt.minute.toString().padLeft(2, '0')}",
                   ),
                   trailing: Text(
-                    "${isWithdraw ? '-' : '+'}${t.amount.toInt()} ₽",
+                    "${isWithdraw ? '-' : '+'}${t.Amount.toInt()} ₽",
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: isWithdraw ? Colors.red : Colors.green,
