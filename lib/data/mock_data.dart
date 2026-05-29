@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kompovnet/data/client.dart';
 import 'package:kompovnet/data/computer_club.dart';
 import 'package:kompovnet/data/computer.dart';
+import 'package:kompovnet/data/computer_status.dart';
 import 'package:kompovnet/data/game_session.dart';
 import 'package:kompovnet/data/game_zone.dart';
 import 'package:kompovnet/data/promo_offer.dart';
@@ -65,6 +66,11 @@ final List<ComputerClub> mockClubs = [
 ];
 
 ComputerClub currentClub = mockClubs[0];
+
+/// Зоны, ПК и тарифы, загруженные из API для выбранного клуба.
+List<GameZone> clubZones = [];
+List<Computer> clubComputers = [];
+List<PromoOffer> clubTariffs = [];
 
 // --- 2. ИГРОВЫЕ ЗОНЫ ---
 final List<GameZone> mockZones = [

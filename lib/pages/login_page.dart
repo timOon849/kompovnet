@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kompovnet/data/mock_data.dart';
-import 'package:kompovnet/data/client.dart';
+import 'package:kompovnet/services/kompov_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
@@ -11,6 +11,8 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  bool _isBusy = false;
+
   void _showRegisterDialog() {
     // Контроллеры для полей регистрации
     final TextEditingController regLoginController = TextEditingController();
@@ -59,7 +61,7 @@ class _LoginPageState extends State<LoginPage> {
               child: const Text("Отмена"),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final name = regNameController.text.trim();
                 final lastName = regLastNameController.text.trim();
                 final phone = regPhoneController.text.trim();
@@ -80,42 +82,22 @@ class _LoginPageState extends State<LoginPage> {
                   return;
                 }
 
-                final loginExists = registeredClients.any(
-                  (member) =>
-                      member.login?.toLowerCase() == login.toLowerCase(),
-                );
-                if (loginExists) {
-                  _showMessage("Такой логин уже занят");
-                  return;
+                try {
+                  final createdClient = await KompovRepository.instance.register(
+                    firstName: name,
+                    lastName: lastName,
+                    phone: phone,
+                    login: login,
+                    password: password,
+                  );
+                  if (!context.mounted) return;
+                  currentClient = createdClient;
+                  Navigator.pop(context);
+                  _showMessage("Регистрация успешна! Выберите клуб.");
+                  Navigator.pushReplacementNamed(context, '/clubs');
+                } catch (e) {
+                  _showMessage(e.toString().replaceFirst('Exception: ', ''));
                 }
-
-                final phoneExists = registeredClients.any(
-                  (member) => member.phoneNumber == phone,
-                );
-                if (phoneExists) {
-                  _showMessage("Такой телефон уже указан у другого пользователя");
-                  return;
-                }
-
-                final newId = registeredClients.isEmpty
-                    ? 1
-                    : registeredClients
-                            .map((member) => member.Id)
-                            .reduce((a, b) => a > b ? a : b) +
-                        1;
-
-                setState(() {
-                  registeredClients.add(Client(
-                    Id: newId,
-                    FirstName: name,
-                    LastName: lastName,
-                    PhoneNumber: phone,
-                    Login: login,
-                    Password: password,
-                  ));
-                });
-                Navigator.pop(context); // Закрываем окно после сохранения
-                _showMessage("Регистрация успешна! Теперь войдите.");
               },
               child: const Text("Создать"),
             ),
@@ -146,24 +128,47 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
+    setState(() => _isBusy = true);
     try {
-      final foundMember = registeredClients.firstWhere(
-        (member) =>
-            (member.login?.toLowerCase() == inputLogin.toLowerCase() ||
-                member.phoneNumber == inputLogin) &&
-            member.password == inputPass,
-      );
+      final foundMember =
+          await KompovRepository.instance.login(inputLogin, inputPass);
+      if (foundMember == null) {
+        _showMessage("Неверный логин или пароль!");
+        return;
+      }
 
       currentClient = foundMember;
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('saved_user_id', foundMember.Id);
       await prefs.setBool('is_logged_in', true);
+      final int? boundClubId =
+          prefs.getInt('selected_club_id_${foundMember.Id}') ??
+          prefs.getInt('selected_club_id');
+
+      if (boundClubId != null) {
+        final clubs = await KompovRepository.instance.getClubs();
+        currentClub = clubs.firstWhere((club) => club.id == boundClubId);
+        await KompovRepository.instance.loadClubCatalog(boundClubId);
+        await KompovRepository.instance.refreshActiveSessions(
+          foundMember.Id,
+          boundClubId,
+        );
+        await KompovRepository.instance.refreshClientTransactions(foundMember.Id);
+      }
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/clubs', arguments: foundMember);
+      Navigator.pushReplacementNamed(
+        context,
+        boundClubId == null ? '/clubs' : '/home',
+        arguments: foundMember,
+      );
     } catch (e) {
-      _showMessage("Неверный логин или пароль!");
+      _showMessage("Не удалось подключиться к API. Запустите KompovNetApi.");
+    } finally {
+      if (mounted) {
+        setState(() => _isBusy = false);
+      }
     }
   }
 
@@ -230,10 +235,10 @@ class _LoginPageState extends State<LoginPage> {
                       backgroundColor: Colors.deepOrangeAccent,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    onPressed: _login,
-                    child: const Text(
-                      "ВОЙТИ",
-                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    onPressed: _isBusy ? null : _login,
+                    child: Text(
+                      _isBusy ? "ВХОД..." : "ВОЙТИ",
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ),
                 ),

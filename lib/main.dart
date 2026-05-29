@@ -6,6 +6,7 @@ import 'package:kompovnet/pages/rates_page.dart';
 import 'package:kompovnet/pages/sessions_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kompovnet/data/mock_data.dart';
+import 'package:kompovnet/services/kompov_repository.dart';
 
 // Твои импорты страниц
 import 'package:kompovnet/pages/booking_page.dart';
@@ -21,24 +22,36 @@ void main() async {
   // 2. Инициализируем хранилище
   final prefs = await SharedPreferences.getInstance();
   final int? savedId = prefs.getInt('saved_user_id');
-  final int? savedClubId = prefs.getInt('selected_club_id');
 
   String initialRoute = '/'; // По умолчанию идем на логин
 
   // 3. Если ID найден, ищем пользователя в нашей "базе"
   if (savedId != null) {
     try {
-      // Обновляем глобальную переменную из mock_data
-      currentClient =
-          registeredClients.firstWhere((client) => client.id == savedId);
-      if (savedClubId != null) {
-        currentClub = mockClubs.firstWhere((club) => club.id == savedClubId);
-        initialRoute = '/home';
-      } else {
-        initialRoute = '/clubs';
+      final client = await KompovRepository.instance.getClient(savedId);
+      if (client != null) {
+        currentClient = client;
+        final int? savedClubId =
+            prefs.getInt('selected_club_id_${currentClient.id}') ??
+            prefs.getInt('selected_club_id');
+        if (savedClubId != null) {
+          final clubs = await KompovRepository.instance.getClubs();
+          currentClub = clubs.firstWhere((club) => club.id == savedClubId);
+          await KompovRepository.instance.loadClubCatalog(savedClubId);
+          await KompovRepository.instance.refreshActiveSessions(
+            currentClient.Id,
+            savedClubId,
+          );
+          await KompovRepository.instance.refreshClientTransactions(
+            currentClient.Id,
+          );
+          initialRoute = '/home';
+        } else {
+          initialRoute = '/clubs';
+        }
       }
     } catch (e) {
-      debugPrint("Пользователь не найден в локальной базе");
+      debugPrint("Не удалось восстановить сессию из API: $e");
     }
   }
 

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:kompovnet/data/computer.dart';
 import 'package:kompovnet/data/game_session.dart';
+import 'package:kompovnet/data/game_zone.dart';
 import '../data/mock_data.dart';
+import 'package:kompovnet/services/kompov_repository.dart';
 
 class SessionsPage extends StatefulWidget {
   const SessionsPage({super.key});
@@ -10,14 +13,43 @@ class SessionsPage extends StatefulWidget {
 }
 
 class _SessionsPageState extends State<SessionsPage> {
+  bool _isLoading = true;
+
+  List<Computer> get _computers => clubComputers;
+
+  List<GameZone> get _zones => clubZones;
+
+  @override
+  void initState() {
+    super.initState();
+    _reload();
+  }
+
+  Future<void> _reload() async {
+    setState(() => _isLoading = true);
+    try {
+      if (clubZones.isEmpty) {
+        await KompovRepository.instance.loadClubCatalog(currentClub.id);
+      }
+      await KompovRepository.instance.refreshActiveSessions(
+        currentClient.Id,
+        currentClub.id,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   void showSessionDecs(int id) {
     final currentSession = activeSessions.firstWhere((e) => e.Id == id);
 
-    final currentComputer = mockComputers.firstWhere(
+    final currentComputer = _computers.firstWhere(
       (s) => s.Id == currentSession.ComputerId,
     );
 
-    final currentZone = mockZones.firstWhere(
+    final currentZone = _zones.firstWhere(
       (z) => z.id == currentComputer.ZoneId,
     );
 
@@ -71,14 +103,20 @@ class _SessionsPageState extends State<SessionsPage> {
     );
   }
 
-  void _cancelSession(GameSession session) {
-    setState(() {
-      session.Status = BookingStatus.cancelled;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Бронь отменена')),
-    );
+  Future<void> _cancelSession(GameSession session) async {
+    try {
+      await KompovRepository.instance.cancelBooking(session.Id);
+      await _reload();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Бронь отменена')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка отмены: $e')),
+      );
+    }
   }
 
   @override
@@ -101,7 +139,9 @@ class _SessionsPageState extends State<SessionsPage> {
           )
         ],
       ),
-      body: userHistory.isEmpty
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : userHistory.isEmpty
           ? const Center(child: Text("В этом клубе у вас пока нет посещений"))
           : ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -109,8 +149,8 @@ class _SessionsPageState extends State<SessionsPage> {
               itemBuilder: (context, index) {
                 // Свежие посещения будут сверху
                 final session = userHistory.reversed.toList()[index];
-                final computer = mockComputers.firstWhere((pc) => pc.Id == session.ComputerId);
-                final zone = mockZones.firstWhere((z) => z.id == computer.ZoneId);
+                final computer = _computers.firstWhere((pc) => pc.Id == session.ComputerId);
+                final zone = _zones.firstWhere((z) => z.id == computer.ZoneId);
                 final status = _getSessionStatus(session);
 
                 return Container(

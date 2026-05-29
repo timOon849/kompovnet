@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kompovnet/data/mock_data.dart';
+import 'package:kompovnet/services/kompov_repository.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -75,7 +76,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     return value.replaceAll(RegExp(r'\D'), '');
   }
 
-  void _saveProfile() {
+  Future<void> _saveProfile() async {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) {
       return;
@@ -85,32 +86,23 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final lastName = _lastnameController.text.trim();
     final phone = _phoneController.text.trim();
 
-    final normalizedPhone = _normalizePhone(phone);
-    final phoneExists = normalizedPhone.isNotEmpty &&
-        registeredClients.any(
-          (member) =>
-              member.Id != currentClient.Id &&
-              _normalizePhone(member.PhoneNumber ?? '') == normalizedPhone,
-        );
-    if (phoneExists) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Этот номер уже привязан к другому аккаунту'),
-        ),
-      );
-      return;
-    }
-
-    // TODO: заменить на PUT /api/clients/{id} и подставить Client из ответа API
     currentClient.FirstName = firstName;
     currentClient.LastName = lastName;
     currentClient.PhoneNumber = phone.isEmpty ? null : phone;
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Изменения успешно сохранены')),
-    );
-    Navigator.pop(context, true);
+    try {
+      await KompovRepository.instance.updateClient(currentClient);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Изменения успешно сохранены')),
+      );
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка сохранения: $e')),
+      );
+    }
   }
 
   Future<void> _closePage() async {

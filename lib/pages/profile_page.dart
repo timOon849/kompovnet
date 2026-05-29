@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kompovnet/data/game_session.dart';
 import 'package:kompovnet/data/mock_data.dart';
-import 'package:kompovnet/data/transaction.dart';
+import 'package:kompovnet/services/kompov_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -12,6 +12,20 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    try {
+      await KompovRepository.instance.refreshCurrentClient();
+      await KompovRepository.instance.refreshClientTransactions(currentClient.Id);
+      if (mounted) setState(() {});
+    } catch (_) {}
+  }
+
   void _showDepositBalance() {
     final TextEditingController amountController = TextEditingController();
     showDialog(
@@ -35,7 +49,7 @@ class _ProfilePageState extends State<ProfilePage> {
               child: const Text('Отмена'),
             ),
             ElevatedButton.icon(
-              onPressed: () {
+              onPressed: () async {
                 double amount = double.tryParse(amountController.text) ?? 0;
 
                 if (amount <= 0) {
@@ -45,24 +59,24 @@ class _ProfilePageState extends State<ProfilePage> {
                   return;
                 }
 
-                setState(() {
-                  // TODO: заменить на API и обновить currentClient из ответа
-                  currentClient.Balance += amount;
-                  userTransactions.add(
-                    Transaction(
-                      Id: DateTime.now().millisecondsSinceEpoch,
-                      ClientId: currentClient.Id,
-                      Amount: amount,
-                      date: DateTime.now(),
-                      Type: TransactionType.deposit,
-                      Description: 'Пополнение баланса',
-                    ),
+                currentClient.Balance += amount;
+                try {
+                  await KompovRepository.instance.updateClient(currentClient);
+                  await KompovRepository.instance
+                      .refreshClientTransactions(currentClient.Id);
+                  if (!context.mounted) return;
+                  setState(() {});
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Баланс пополнен')),
                   );
-                });
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Баланс пополнен')),
-                );
+                } catch (e) {
+                  currentClient.Balance -= amount;
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Ошибка: $e')),
+                  );
+                }
               },
               label: const Text('Пополнить'),
               icon: const Icon(Icons.attach_money_rounded),
@@ -76,7 +90,6 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('saved_user_id');
-    await prefs.remove('selected_club_id');
     await prefs.setBool('is_logged_in', false);
 
     if (!mounted) return;

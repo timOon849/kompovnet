@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:kompovnet/data/computer.dart';
+import 'package:kompovnet/data/computer_status.dart';
 import 'package:kompovnet/data/game_session.dart';
 import 'package:kompovnet/data/game_zone.dart';
 import 'package:kompovnet/data/promo_offer.dart';
 import '../data/mock_data.dart';
+import 'package:kompovnet/services/kompov_repository.dart';
 
 class BookingPage extends StatefulWidget {
   const BookingPage({super.key});
@@ -13,6 +15,8 @@ class BookingPage extends StatefulWidget {
 }
 
 class _BookingPageState extends State<BookingPage> {
+  bool _isSubmitting = false;
+  bool _isLoading = true;
   int selectedZoneIndex = 0;
   int? selectedComputerId;
   int selectedHours = 1;
@@ -21,12 +25,40 @@ class _BookingPageState extends State<BookingPage> {
   TimeOfDay selectedTime = TimeOfDay.now();
 
   @override
+  void initState() {
+    super.initState();
+    _loadCatalog();
+  }
+
+  Future<void> _loadCatalog() async {
+    try {
+      if (clubZones.isEmpty || clubTariffs.isEmpty) {
+        await KompovRepository.instance.loadClubCatalog(currentClub.id);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final clubZones = mockZones
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text("Бронирование ПК"),
+          backgroundColor: Colors.deepOrangeAccent,
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final clubZonesList = clubZones
         .where((zone) => zone.clubId == currentClub.id)
         .toList();
 
-    if (clubZones.isEmpty) {
+    if (clubZonesList.isEmpty) {
       return Scaffold(
         appBar: AppBar(
           title: const Text("Бронирование ПК"),
@@ -37,10 +69,10 @@ class _BookingPageState extends State<BookingPage> {
       );
     }
 
-    final currentZone = clubZones[selectedZoneIndex];
+    final currentZone = clubZonesList[selectedZoneIndex];
     final int currentZoneId = currentZone.id;
 
-    final List<Computer> computersToShow = mockComputers
+    final List<Computer> computersToShow = clubComputers
         .where((pc) => pc.ClubId == currentClub.id && pc.ZoneId == currentZoneId)
         .toList();
 
@@ -51,13 +83,8 @@ class _BookingPageState extends State<BookingPage> {
       selectedTime.hour,
       selectedTime.minute,
     );
-    final bookingTariffs = mockTariffs
-        .where(
-          (tariff) =>
-              tariff.isForBooking &&
-              (tariff.clubId == null || tariff.clubId == currentClub.id),
-        )
-        .toList();
+    final bookingTariffs =
+        clubTariffs.where((tariff) => tariff.isForBooking).toList();
     final DateTime endTime = startTime.add(Duration(hours: selectedHours));
     final double totalCost = selectedTariff == null || selectedTariff!.price == 0
         ? selectedHours * currentZone.pricePerHour
@@ -88,7 +115,7 @@ class _BookingPageState extends State<BookingPage> {
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: clubZones.length,
+                itemCount: clubZonesList.length,
                 itemBuilder: (context, index) {
                   bool isSelected = selectedZoneIndex == index;
                   return GestureDetector(
@@ -105,7 +132,7 @@ class _BookingPageState extends State<BookingPage> {
                       ),
                       child: Center(
                         child: Text(
-                          clubZones[index].name,
+                          clubZonesList[index].name,
                           style: TextStyle(
                             color: isSelected ? Colors.white : Colors.black,
                           ),
@@ -463,36 +490,47 @@ class _BookingPageState extends State<BookingPage> {
     _confirmBooking(zone, computer, start, end, cost, tariff);
   }
 
-  void _confirmBooking(
+  Future<void> _confirmBooking(
     GameZone zone,
     Computer computer,
     DateTime start,
     DateTime end,
     double cost,
     PromoOffer? tariff,
-  ) {
-    setState(() {
-      activeSessions.add(GameSession(
-        Id: DateTime.now().millisecondsSinceEpoch,
-        ClientId: currentClient.Id,
-        ClubId: currentClub.id,
-        ComputerId: computer.Id,
-        startTime: start,
-        endTime: end,
-        totalCost: cost,
-        priceAtBooking: cost,
-        tariffTitle: tariff?.title ?? 'Почасовой',
-      ));
-    });
-
-    Navigator.pushReplacementNamed(context, '/sessions');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "Успешно забронировано: ПК №${computer.Number}, ${zone.name}",
+  ) async {
+    setState(() => _isSubmitting = true);
+    try {
+      await KompovRepository.instance.createBooking(
+        clubId: currentClub.id,
+        clientId: currentClient.Id,
+        computerId: computer.Id,
+        zoneId: zone.id,
+        startsAt: start,
+        endsAt: end,
+      );
+      await KompovRepository.instance.refreshActiveSessions(
+        currentClient.Id,
+        currentClub.id,
+      );
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/sessions');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Успешно забронировано: ПК №${computer.Number}, ${zone.name}",
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка бронирования: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   String _formatDate(DateTime date) {
